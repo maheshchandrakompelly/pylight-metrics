@@ -100,5 +100,34 @@ class LockFreeMetricsAggregator:
         self.flush()
         
     # Stubs for compatibility
-    def export_prometheus(self): return ""
-    def export_csv(self): return ""
+    def export_prometheus(self) -> str:
+        """
+        Flushes stats and formats them for Prometheus.
+        """
+        stats = self.flush()
+        lines = []
+        for name, data in stats.items():
+            safe_name = name.replace(".", "_")
+            # Prometheus Help/Type
+            lines.append(f"# HELP {safe_name} Metric for {name}")
+            lines.append(f"# TYPE {safe_name} summary")
+            
+            # Summary stats
+            lines.append(f'{safe_name}_count {data.count}')
+            lines.append(f'{safe_name}_sum {data.total}')
+            
+            # Percentiles (if available)
+            if data.p50 is not None: lines.append(f'{safe_name}{{quantile="0.5"}} {data.p50}')
+            if data.p90 is not None: lines.append(f'{safe_name}{{quantile="0.9"}} {data.p90}')
+            if data.p99 is not None: lines.append(f'{safe_name}{{quantile="0.99"}} {data.p99}')
+            
+        return "\n".join(lines)
+
+    def export_csv(self) -> str:
+        stats = self.flush()
+        header = "name,count,total,min,max,avg,p99"
+        lines = [header]
+        for name, data in stats.items():
+            p99 = data.p99 if data.p99 is not None else 0
+            lines.append(f"{name},{data.count},{data.total},{data.min},{data.max},{data.avg},{p99}")
+        return "\n".join(lines)

@@ -3,11 +3,12 @@ from pylight_metrics.aggregator import LockFreeMetricsAggregator, MetricType
 
 class TestMetricsAggregator(unittest.TestCase):
     def setUp(self):
-        """Runs before EVERY test."""
+        """
+        Reset the aggregator before every test.
+        """
+        # Reset the Singleton instance effectively
+        LockFreeMetricsAggregator._instance = None
         self.agg = LockFreeMetricsAggregator()
-        # FORCE RESET: Since it's a Singleton, we must wipe old data manually
-        self.agg._aggregated_stats = {}
-        self.agg._global_buffer.clear()
 
     def test_counter_increment(self):
         """Test if basic counting works."""
