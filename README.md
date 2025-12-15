@@ -22,6 +22,15 @@ Comparison with `prometheus-client` (Official Library) on 50 concurrent threads.
 
 **Result:** `pylight-metrics` is **~1.33x Faster** on the write path because it offloads heavy math (percentiles) to the background flush step.
 
+## 🏗️ Architecture: Why is it fast?
+
+In Python, `threading.local()` (used by many libraries) is slow because it involves dictionary lookups and indirection.
+
+**Pylight Metrics v0.2.0** uses a **Sharded Locking Strategy**:
+1.  **Sharding:** We divide the storage into **64 independent buckets** (shards).
+2.  **Hashing:** Each thread is mapped to a shard using `thread_id % 64`.
+3.  **Low Contention:** With 64 shards, even 50+ concurrent threads rarely fight for the same lock.
+4.  **Lazy Calculation:** We do minimal work on the write path (just append). Expensive math (P99, P95) happens only during `flush()` in the background.
 
 ## Installation
 
