@@ -1,9 +1,10 @@
-from .core import ZeroContentionTimer, fast_timer, ZeroContentionCounter, count_calls, increment
+from .core import measure_time, counter, PylightTimer
 from .aggregator import LockFreeMetricsAggregator, MetricType
 
-__version__ = "0.1.2"
 __all__ = [
-    "ZeroContentionTimer", "fast_timer", 
-    "ZeroContentionCounter", "count_calls", "increment",
-    "LockFreeMetricsAggregator", "MetricType"
+    "measure_time",
+    "counter",
+    "PylightTimer",
+    "LockFreeMetricsAggregator",
+    "MetricType",
 ]
