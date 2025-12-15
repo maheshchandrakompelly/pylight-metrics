@@ -171,23 +171,28 @@ class LockFreeMetricsAggregator:
 
     def _flush_global_buffer(self) -> Dict[str, AggregatedStats]:
         with self._global_lock:
-            if not self._global_buffer: return {}
-            values_by_name = {name: [m.value for m in metrics] for name, metrics in self._global_buffer.items()}
+            # 1. Merge new data if available
+            if self._global_buffer:
+                values_by_name = {name: [m.value for m in metrics] for name, metrics in self._global_buffer.items()}
+                
+                for name, values in values_by_name.items():
+                    if name not in self._aggregated_stats:
+                        self._aggregated_stats[name] = AggregatedStats(name=name)
+                    for value in values:
+                        self._aggregated_stats[name].update(value)
+                    self._aggregated_stats[name].finalize(values)
+                
+                self._global_buffer.clear()
+                self.last_global_flush_time = datetime.now()
             
-            for name, values in values_by_name.items():
-                if name not in self._aggregated_stats:
-                    self._aggregated_stats[name] = AggregatedStats(name=name)
-                for value in values:
-                    self._aggregated_stats[name].update(value)
-                self._aggregated_stats[name].finalize(values)
-            
-            self._global_buffer.clear()
-            self.last_global_flush_time = datetime.now()
-            
+            # 2. ALWAYS return the full stats (Even if buffer was empty)
             stats_copy = {k: v for k, v in self._aggregated_stats.items()}
+            
+            # 3. Notify callbacks
             for cb in self._report_callbacks:
                 try: cb(stats_copy)
                 except Exception as e: logger.error(f"Callback failed: {e}")
+            
             return stats_copy
 
     def flush(self) -> Dict[str, AggregatedStats]:
